@@ -46,16 +46,40 @@ The application loop operates a predictable, deterministic state layout to manag
 
 ## 📂 Repository File Allocation Map
 ```text
-📁 KOAS-V1.0-Kitchen-Monitor/
+📁 KOAS-V1.0-Kitchen-Alert-System-main/
 ├── 📁 Firmware/
-│   ├── 📁 startup/              # Low-level system assembly boot vectors (startup_stm32f103xb.s)
-│   ├── 📁 src/                  # Main execution application file (main.c)
-│   └── 📄 Makefile              # Toolchain cross-compiler compilation instruction script
+│   ├── 📁 startup/                        # Low-level system assembly boot vectors and linker script
+│   │   ├── 📄 startup_stm32f103xb.s       # ARM Cortex-M3 reset handler and interrupt vector table
+│   │   └── 📄 stm32f103c8tx_flash.ld      # Linker script defining memory regions and section layout
+│   ├── 📁 Core/                           # Platform entry point and interrupt service routines
+│   │   ├── 📁 Inc/
+│   │   │   └── 📄 stm32_it.h             # ISR function declarations
+│   │   └── 📁 Src/
+│   │       ├── 📄 main.c                  # Main execution entry point and system initialization
+│   │       └── 📄 stm32_it.c             # Interrupt service routine implementations
+│   ├── 📁 App/                            # Application-layer FSM logic
+│   │   ├── 📁 Inc/
+│   │   │   └── 📄 order_alert_fsm.h      # FSM state and event type declarations
+│   │   └── 📁 Src/
+│   │       └── 📄 order_alert_fsm.c      # FSM transition logic and alert sequencing
+│   ├── 📁 Drivers/                        # Hardware abstraction and CMSIS peripheral drivers
+│   │   ├── 📁 MCU_Drivers/               # Custom peripheral driver layer
+│   │   │   ├── 📁 Inc/                   # Driver header files (buzzer, EXTI, IR sensor, LED, PWM)
+│   │   │   └── 📁 Src/                   # Driver source implementations
+│   │   ├── 📁 BSP/                       # Board support package
+│   │   │   ├── 📁 Inc/
+│   │   │   └── 📁 Src/
+│   │   └── 📁 CMSIS/                     # ARM CMSIS core and STM32F1xx device headers
+│   │       ├── 📁 Include/               # Core Cortex-M3 headers (core_cm3.h, cmsis_gcc.h, etc.)
+│   │       └── 📁 Device/               # STM32F1xx device-specific register definitions
+│   ├── 📁 build/                          # Compiled output artifacts (binary, ELF, map file)
+│   └── 📄 Makefile                        # Toolchain cross-compiler compilation instruction script
 ├── 📁 Hardware/
-│   ├── 📄 Schematic_V1.0.pdf    # Complete stripboard layout, bus map, and star ground node paths
-│   └── 🖼️ Enclosure_Sticker.jpg # Production case cover sticker branding graphic
+│   └── 🖼️ Enclosure_Sticker_koas_v1.jpg  # Production case cover sticker branding graphic
 └── 📁 Documentation/
-    └── 📄 Engineering_Manual.md # High-density architectural manual, mathematical analysis, and configurations
+    ├── 📄 Engineering_Manual.md            # High-density architectural manual, mathematical analysis, and configurations
+    ├── 📄 Firmware Architecture - Kitchen Order Alert System FSM.pdf  # FSM architecture slide deck
+    └── 🖼️ FSM diagrams & flow images       # D-flow.png, FSM-Theory, FSM-Diagram, FSM-Implementation slides
 ```
 
 ---

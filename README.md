@@ -1,6 +1,5 @@
 # KOAS-V1.0 | Kitchen Order Alert System Hardware Platform
 
-
 An industrial-grade, ultra-low-latency BARE-METAL embedded controller engineered to manage high-volume food service delivery windows. Running directly on raw hardware registers without an RTOS or vendor abstract frameworks (HAL/LL), KOAS-V1.0 features asynchronous dual-vector interrupt loops, real-world electrical noise filtering, a self-diagnostic startup safety matrix, and an independent watchdog shield.
 
 ---
@@ -16,37 +15,40 @@ Below is the commercial graphic overlay and technical specification panel design
 
 ## 🛠️ Core Engineering & Production Highlights
 * **Zero-Abstraction Register Control:** Maintained absolute memory and execution control by bypassing heavy libraries, programming the ARM Cortex-M3 clock trees (`RCC`), general-purpose timers (`TIM2`), and input/output registers directly via raw bitmasks.
+* **Decoupled Event-Driven Core Architecture:** Implemented a hardware-isolated Finite State Machine (FSM) following the core design principles in Miro Samek’s *Practical UML Statecharts*. The execution core handles state processing purely using abstract context tokens, ensuring zero GPIO register pollution inside application loops.
 * **Dual-Vector Interleaved Interrupt Architecture:** Implemented asynchronous edge-triggered interrupt service routines across separate lanes (`EXTI0` and `EXTI1`). Order arrivals are captured instantly on falling edges, keeping the main processing loop completely un-blocked.
 * **Defensive Silicon Isolation (Cross-Vendor Safety):** Embedded data synchronization barriers (`__DSB()`) directly following interrupt clears. This acts as a hardware memory fence, blocking internal instruction pipelining race conditions across cheaper alternative silicon clones (CKS32/CS32) found in real-world supply chains.
 * **Industrial Electrical Noise Mitigation:** Handled severe kitchen electromagnetic interference (EMI) via an external 2.2 kΩ / 10 kΩ stripboard step-down voltage divider combined with a 10 kΩ pull-up resistor and a 100 nF ceramic capacitor filter for full hardware button debouncing.
 * **Self-Healing Watchdog Architecture (IWDG):** Enabled the internal low-speed independent hardware watchdog clock (40 kHz). The system automatically performs a full-chip power reset within 1.0 second if an industrial power surge freezes the main processing line.
 * **Custom Toolchain Compilation Pipeline:** Formulated a lightweight manual `Makefile` execution structure using the standard cross-compiler toolchain to compile clean machine instruction binaries without specialized IDE dependencies.
 
-
-                            3.3V ──┬── 10kΩ ──┬── PA0
-                                │          │
-                                │        [Button]
-                                │          │
-                                GND ────────┘
+```text
+                            3.3V ──┬── 10kΩ ──┬── PA0 (Event: BUTTON_PRESSED)
+                                   │          │
+                                   │        [Button]
+                                   │          │
+                                  GND ────────┘
+```
 
 ---
 
-## 📊 Finite State Machine (FSM) State Rules
-The application loop operates a predictable, deterministic state layout to manage kitchen order delivery flows:
+## 📊 Finite State Machine (FSM) Context Matrix
+The core engine enforces strict, context-aware state rules to process incoming signals asynchronously. Instead of raw event execution, the system dynamically filters tokens based on the current active operating context:
 
-| Operating State | Hardware Trigger | Peripheral Reaction Profile |
-| :--- | :--- | :--- |
-| **`STATE_IDLE`** | IR Sensor Beam Clear (`PA1` High) | `TIM2` PWM Output Deactivated / `PC13` Onboard User LED Turned OFF |
-| **`STATE_ALARM`** | IR Sensor Beam Broken (`PA1` Falls Low) | `TIM2` Pulse Channel Energised at 2.0 kHz / `PC13` Flashed at 900ms Intervals |
-| **`STATE_MUTED`** | ACK Button Pressed + Beam Clear (`PA0`) | `TIM2` Audio Output Silenced Instantly / `PC13` Held Solid ON as a Silent Visual Reminder |
-
-*Note: The system contains a physical logic interlock loop. If the ACK button is pressed while a ticket is still physically blocking the optical path (`PA1` is Low), the system forcefully ignores the mute request, safeguarding the order tracking integrity.*
+| Operating State | Abstract Event Consumer | Transition Target | Active Functional Profile |
+| :--- | :--- | :--- | :--- |
+| **`STATE_IDLE`** | `TICKET_DETECTED` | `STATE_ALARMING` | Invokes `Buzzer_On()` / Activates alert LED framework. |
+| | `TICKET_REMOVED` / `BUTTON_PRESSED` | *Ignored* | System remains completely quiet; invalid outside context. |
+| **`STATE_ALARMING`** | `TICKET_REMOVED` | `STATE_WAIT_ACK` | Sensor beam cleared; transitions behavior to wait for staff input. |
+| | `BUTTON_PRESSED` | *Ignored* | **Logic Interlock Rule:** Mute request blocked because physical ticket is still present. |
+| **`STATE_WAIT_ACK`** | `BUTTON_PRESSED` | `STATE_IDLE` | Staff acknowledgment verified; invokes `Buzzer_Off()` / `LED_Off()`. |
+| | `TICKET_DETECTED` | `STATE_ALARMING` | **Race Condition Protection:** New order dropped before acknowledgement; loops back to catch. |
 
 ---
 
 ## 📂 Repository File Allocation Map
 ```text
-📁 KOAS-V1.0-Kitchen-Alert-System-main/
+📁 KOAS-V1.0-Kitchen-Alert-System/
 ├── 📁 Firmware/
 │   ├── 📁 startup/                        # Low-level system assembly boot vectors and linker script
 │   │   ├── 📄 startup_stm32f103xb.s       # ARM Cortex-M3 reset handler and interrupt vector table
@@ -72,7 +74,6 @@ The application loop operates a predictable, deterministic state layout to manag
 │   │   └── 📁 CMSIS/                     # ARM CMSIS core and STM32F1xx device headers
 │   │       ├── 📁 Include/               # Core Cortex-M3 headers (core_cm3.h, cmsis_gcc.h, etc.)
 │   │       └── 📁 Device/               # STM32F1xx device-specific register definitions
-│   ├── 📁 build/                          # Compiled output artifacts (binary, ELF, map file)
 │   └── 📄 Makefile                        # Toolchain cross-compiler compilation instruction script
 ├── 📁 Hardware/
 │   └── 🖼️ Enclosure_Sticker_koas_v1.jpg  # Production case cover sticker branding graphic
@@ -91,4 +92,3 @@ The application loop operates a predictable, deterministic state layout to manag
 * **Acoustic Alerting Frequency:** $2.0\text{ kHz}$ Edge-Aligned Pulse-Width Modulation (PWM Mode 1 via `TIM2_CH3`)
 * **Operating Temperature Window:** $-20^\circ\text{C}$ to $+85^\circ\text{C}$ (Industrial Grade Envelope)
 * **Mechanical Debounce Delay Constraint:** 30ms Synchronous Delta Protection Check
-

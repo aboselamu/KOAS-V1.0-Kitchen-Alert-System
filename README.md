@@ -8,7 +8,7 @@ An industrial-grade, ultra-low-latency BARE-METAL embedded controller engineered
 Below is the commercial graphic overlay and technical specification panel designed for the physical product case, matching industrial manufacturing and regulatory requirements:
 
 <p align="center">
-  <img src="Hardware/Enclosure_Sticker.jpg" alt="DEV360S KOAS-V1.0 Front Panel Label" width="550"/>
+  <img src="Hardware/Enclosure_Sticker_koas_v1.jpg" alt="DEV360S KOAS-V1.0 Front Panel Label" width="550"/>
 </p>
 
 ---
